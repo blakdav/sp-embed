@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tasks</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f0f11;
+      --surface: #17171a;
+      --border: #2a2a30;
+      --text: #e2e2e8;
+      --muted: #6b6b78;
+      --today-accent: #e8624a;
+      --upcoming-accent: #5b8adb;
+      --no-date-accent: #8a8a9a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+      padding: 14px;
+      overflow-x: hidden;
+    }
+
+    .section { margin-bottom: 18px; }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .section-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .section-count {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    .today .section-dot { background: var(--today-accent); }
+    .today .section-label { color: var(--today-accent); }
+    .upcoming .section-dot { background: var(--upcoming-accent); }
+    .upcoming .section-label { color: var(--upcoming-accent); }
+    .no-date .section-dot { background: var(--no-date-accent); }
+
+    .task-list { display: flex; flex-direction: column; gap: 2px; }
+
+    .task {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: start;
+      padding: 5px 6px;
+      border-radius: 4px;
+      transition: background 0.1s;
+    }
+
+    .task:hover { background: var(--surface); }
+
+    .task-content { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+
+    .task-name {
+      font-weight: 400;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .task-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .task-due {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+
+    .overdue .task-due { color: var(--today-accent); }
+
+    .empty {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      padding: 4px 6px;
+      font-style: italic;
+    }
+
+    .error {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--today-accent);
+      padding: 8px;
+      border: 1px solid var(--today-accent);
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+
+    .refresh-bar {
+      text-align: right;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      color: #333340;
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+  {% if not data_found %}
+  <div class="error">could not read sync-data.json — check volume mount</div>
+  {% endif %}
+
+  <div class="section today">
+    <div class="section-header">
+      <div class="section-dot"></div>
+      <span class="section-label">Today & Overdue</span>
+      <span class="section-count">{{ today_tasks|length }}</span>
+    </div>
+    <div class="task-list">
+      {% if today_tasks %}
+        {% for task in today_tasks %}
+          {% set is_overdue = task.due_str < today_str %}
+          <div class="task {% if is_overdue %}overdue{% endif %}">
+            <div class="task-content">
+              <span class="task-name">{{ task.title }}</span>
+              <span class="task-meta">{{ task.project_name }}</span>
+            </div>
+            <div class="task-due">{% if is_overdue %}{{ fmt_date(task.due_str) }}{% else %}today{% endif %}</div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty">all clear</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="section upcoming">
+    <div class="section-header">
+      <div class="section-dot"></div>
+      <span class="section-label">Upcoming</span>
+      <span class="section-count">{{ upcoming_tasks|length }}</span>
+    </div>
+    <div class="task-list">
+      {% if upcoming_tasks %}
+        {% for task in upcoming_tasks %}
+          <div class="task">
+            <div class="task-content">
+              <span class="task-name">{{ task.title }}</span>
+              <span class="task-meta">{{ task.project_name }}</span>
+            </div>
+            <div class="task-due">{{ fmt_date(task.due_str) }}</div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty">nothing scheduled</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="section no-date">
+    <div class="section-header">
+      <div class="section-dot"></div>
+      <span class="section-label">No Due Date</span>
+      <span class="section-count">{{ no_date_tasks|length }}</span>
+    </div>
+    <div class="task-list">
+      {% if no_date_tasks %}
+        {% for task in no_date_tasks %}
+          <div class="task">
+            <div class="task-content">
+              <span class="task-name">{{ task.title }}</span>
+              <span class="task-meta">{{ task.project_name }}</span>
+            </div>
+            <div class="task-due">—</div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty">inbox zero 🎉</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="refresh-bar">auto-refresh 60s</div>
+
+  <script>setTimeout(() => location.reload(), 60000);</script>
+
+</body>
+</html>

@@ -23,4 +23,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: marbles9312/sp-embed:latest
+          tags: blakdav/sp-embed:latest

@@ -50,13 +50,7 @@ def parse_tasks(data: dict):
         project_name = projects.get(project_id, "Inbox") if project_id else "Inbox"
 
         # SP stores due date as ms timestamp
-        due_raw = task.get("dueDate") or task.get("plannedAt")
-        due_str = None
-        if due_raw:
-            try:
-                due_str = datetime.utcfromtimestamp(due_raw / 1000).date().isoformat()
-            except Exception:
-                due_str = None
+        due_str = task.get("dueDay") or None
 
         entry = {
             "title": title,
